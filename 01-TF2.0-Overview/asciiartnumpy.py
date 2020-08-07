@@ -19,4 +19,3 @@ def print_as_asciiart(image:np.array, trim_top_and_bottom=False, scale:int=None)
     if trim_top_and_bottom:
         lines= [ line for line in lines if line.strip() != '' ]
     print('\n'.join(lines))
-    return lines
