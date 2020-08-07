@@ -118,27 +118,24 @@ def predict(model:keras.Model, image:np.ndarray):
     prediction = tf.argmax(logits, axis=1).numpy()[0]
     return prediction
 
-def delete_folder(folder_path):
-    if tf.io.gfile.exists(folder_path):
-        tf.io.gfile.rmtree(folder_path)
 
+checkpoint_dir = os.path.join('.tmpmnist', 'checkpoints')
+checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
+checkpoint = tf.train.Checkpoint(model=model, optimizer=optimizer)
 
-Model_Saved_State_Folder= './mnistConvModel'
-delete_folder(Model_Saved_State_Folder)
+# Restore variables on creation if a checkpoint exists.
+checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
-checkpoint_folder=os.path.join(Model_Saved_State_Folder, 'checkpoints')
-checkpoint=tf.train.Checkpoint(model=model, optimizer=optimizer)
-checkpoint.restore(tf.train.latest_checkpoint(checkpoint_folder))
-checkpoint_fileprefix=os.path.join(checkpoint_folder, 'ckpt')
-
-Num_Training_Epochs=0
+Num_Training_Epochs=3
 for i in range(Num_Training_Epochs):
     started_at=time.time()
     train(model, optimizer,train_ds,log_steps=200)
     finished_at=time.time()
     print('Epoch #{} ({} steps) took : {}'.format(
         i+1, optimizer.iterations, finished_at - started_at))
-    checkpoint.save(checkpoint_fileprefix)
+    checkpoint.save(checkpoint_prefix)
+    print('saved checkpoint.')
 
-export_path= os.path.join(Model_Saved_State_Folder,'export')
-tf.saved_model.save(model,export_path)
+
+Saved_Model_Path= './mnistConvModel'
+tf.saved_model.save(model, Saved_Model_Path)

@@ -78,12 +78,12 @@ def train(model, optimizer, dataset, log_freq=50):
             # summary_ops_v2.scalar('accuracy', compute_accuracy.result(), step=optimizer.iterations)
             print('step:', int(optimizer.iterations),
                   'loss:', avg_loss.result().numpy(),
-                  'acc:', compute_accuracy.result().numpy())
+                  'acc:', compute_accuracy.result().numpy() * 100)
             avg_loss.reset_states()
             compute_accuracy.reset_states()
 
 
-def test(model, dataset, step_num):
+def test(model, dataset):
     """
     Perform an evaluation of `model` on the examples from `dataset`.
     """
@@ -98,12 +98,11 @@ def test(model, dataset, step_num):
         avg_loss.result(), compute_accuracy.result() * 100))
 
     print('loss:', avg_loss.result(), 'acc:', compute_accuracy.result())
-    # summary_ops_v2.scalar('loss', avg_loss.result(), step=step_num)
-    # summary_ops_v2.scalar('accuracy', compute_accuracy.result(), step=step_num)
-
+    avg_loss.reset_states()
+    compute_accuracy.reset_states()
 
 # Where to save checkpoints, tensorboard summaries, etc.
-MODEL_DIR = '/tmp/tensorflow/mnist'
+MODEL_DIR = '.tmpmnist'
 
 
 def apply_clean():
@@ -116,13 +115,12 @@ apply_clean()
 
 checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints')
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
-
 checkpoint = tf.train.Checkpoint(model=model, optimizer=optimizer)
 
 # Restore variables on creation if a checkpoint exists.
 checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
-NUM_TRAIN_EPOCHS = 5
+NUM_TRAIN_EPOCHS = 3
 
 for i in range(NUM_TRAIN_EPOCHS):
     start = time.time()
