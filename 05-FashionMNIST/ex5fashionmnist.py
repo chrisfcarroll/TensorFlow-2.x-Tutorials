@@ -46,3 +46,7 @@ model.compile(
 model.fit(train_ds.repeat(), epochs=30, steps_per_epoch=500,
           validation_data=val_ds.repeat(),
           validation_steps=2)
+
+
+keras.models.save_model(model,'mnistfashion4Dense_after30x500')
+
