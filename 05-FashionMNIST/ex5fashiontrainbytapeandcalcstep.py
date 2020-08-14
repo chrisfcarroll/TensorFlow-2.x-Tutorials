@@ -5,7 +5,6 @@ from tensorflow import keras
 from tensorflow.keras import layers, optimizers, datasets
 from tensorflow.python.data import Dataset
 from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.optimizers import Optimizer
 
 
 def cast_mnist_features_and_labels(x, y):
