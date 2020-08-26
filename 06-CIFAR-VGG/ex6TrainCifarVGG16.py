@@ -54,7 +54,8 @@ print('. . . loaded.')
 
 
 model= keras.models.Sequential([
-    keras.layers.Reshape(target_shape=(224*224*3,), input_shape=(224,224,3)),
+    keras.layers.Reshape(target_shape=(32*32*3,), input_shape=(32,32,3)),
+    keras.layers.Dense(100),
     keras.layers.Dense(10)
     ])
 criterion=keras.losses.CategoricalCrossentropy(from_logits=True)
@@ -70,7 +71,7 @@ for epoch in range(10):
             logits=model(x)
             loss=criterion(y, logits)
             accuracy.update_state(y, logits)
-        grads= tf.gradients(loss, model.trainable_weights)
+        grads= tape.gradient(loss, model.trainable_weights)
         grads= [ tf.clip_by_norm(g,15) for g in grads]
         optimizer.apply_gradients(zip(grads,model.trainable_weights))
 
@@ -85,8 +86,8 @@ for epoch in range(10):
             y=tf.one_hot(y,depth=10)
             logits=model.predict(x)
             validation_accuracy.update_state(y,logits)
-            print(f'                                 | accuracy={int(validation_accuracy.result()*100):2}%')
-            validation_accuracy.reset_states()
+        print(f'                                 | accuracy={int(validation_accuracy.result()*100):2}%')
+        validation_accuracy.reset_states()
 
 
 keras.models.save_model(model, 'Cifar10VGG16')
