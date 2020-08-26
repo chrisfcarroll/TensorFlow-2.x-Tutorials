@@ -8,6 +8,8 @@ from tensorflow.keras import layers, models, optimizers, metrics, datasets
 from tensorflow.data import Dataset
 import os
 import argparse
+from ex6VGG16 import VGG16
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 argparser= argparse.ArgumentParser(prog="ex6TrainCifarVGG16")
@@ -53,11 +55,13 @@ val_ds=tf.data.Dataset.from_tensor_slices((x_val,y_val)).map(cast_to_float32int3
 print('. . . loaded.')
 
 
-model= keras.models.Sequential([
+model_simpledense= keras.models.Sequential([
     keras.layers.Reshape(target_shape=(32*32*3,), input_shape=(32,32,3)),
     keras.layers.Dense(100),
     keras.layers.Dense(10)
     ])
+model=VGG16([32,32,3])
+
 criterion=keras.losses.CategoricalCrossentropy(from_logits=True)
 accuracy=keras.metrics.CategoricalAccuracy()
 optimizer=optimizers.Adam(learning_rate=0.0001)
@@ -76,7 +80,7 @@ for epoch in range(10):
         optimizer.apply_gradients(zip(grads,model.trainable_weights))
 
         if step<2 or step % opts.progress_frequency==0:
-            print(f'epoch {epoch:3} step {step:6} | loss={loss:4.2f} | accuracy={int(accuracy.result()*100):2}%')
+            print(f'epoch {epoch:3} step {step:5} | loss={loss:4.2f} | accuracy={int(accuracy.result()*100):2}%')
             accuracy.reset_states()
 
     if epoch % 1 == 0:
