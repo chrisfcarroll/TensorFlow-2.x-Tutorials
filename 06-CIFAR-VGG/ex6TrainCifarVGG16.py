@@ -29,18 +29,40 @@ def normalise_to_meanzero_stdevone(x_train:tf.Tensor, x_val:tf.Tensor):
         x_val = x_val/255.
         mean=np.mean(x_train,axis=(0,1,2,3))
         std=np.std(x_train,axis=(0,1,2,3))
-        print(f'test data mean={mean}, σ={std}')
+        print(f'training data µ={mean}, σ={std}')
         x_train= (x_train - mean)/ (std + 1e-7)
         x_val= (x_val - mean)/ (std + 1e-7)
         return x_train,x_val
 
+
 def cast_to_float32int32(x:tf.Tensor,y:tf.Tensor):
     return tf.cast(x,tf.float32), tf.cast(y,tf.int32)
+
 
 def compute_loss(logits,labels):
     return tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,labels=labels)
     )
+
+
+def evaluate_saved_model(modelpath:str='Cifar10VGG16',
+             loss=keras.losses.CategoricalCrossentropy()):
+    assert os.path.isdir(modelpath)
+    model:keras.models.Model
+    model=keras.models.load_model(modelpath)
+    model.compile(loss=loss)
+    print('Loaded:', model.summary())
+    cf10=tf.keras.datasets.cifar10.load_data()
+    (xt,yt),(xv,yv)= cf10
+    xt,xv= normalise_to_meanzero_stdevone(xt,xv)
+    (xv,yv)= cast_to_float32int32(xv,yv)
+    print(f'evaluating on {xv.shape[0]} examples, please wait...')
+    metric=keras.metrics.CategoricalAccuracy()
+    logits=model.predict(xv)
+    yvhot= tf.one_hot( tf.squeeze(yv), depth=10)
+    metric.update_state(yvhot,logits)
+    print(f'Categorical Accuracy= {metric.result()*100:2.1f}%')
+
 
 
 tf.random.set_seed(22)
