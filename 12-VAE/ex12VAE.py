@@ -1,6 +1,4 @@
 import os
-from typing import Union
-
 import numpy as np
 from numpy import ndarray
 import tensorflow as tf
@@ -17,6 +15,8 @@ mnist_img_width=28
 mnist_img_height=28
 save_model_directory= 'model'
 save_imgs_directory= 'images'
+if not os.path.exists(save_model_directory): os.makedirs(save_model_directory)
+if not os.path.exists(save_imgs_directory): os.makedirs(save_imgs_directory)
 
 train_num_epochs=55
 train_batch_size=100
@@ -57,7 +57,10 @@ class VAE(models.Model):
 
     def __init__(self, input_dims: (int,int), *,hidden_layers_dim:int, latent_space_dim: int):
         super(VAE,self).__init__()
-        self.input_dims=input_dims;self.zdim=latent_space_dim;self.hdim=hidden_layers_dim
+        self.input_dims=input_dims
+        self.latent_space_dims=latent_space_dim
+        self.hidden_layer_dims=hidden_layers_dim
+        self.input_flattened_size = input_dims[0] * input_dims[1]
         # input -> h dimensions -> (mean,variance)
         self.fc1=layers.Dense(hidden_layers_dim)
         self.fc2_mean=layers.Dense(latent_space_dim)
@@ -65,7 +68,7 @@ class VAE(models.Model):
 
         # and back (mean,variance) -> h -> reconstructed output
         self.fc4=layers.Dense(hidden_layers_dim)
-        self.fc5=layers.Dense(input_dims[0]*input_dims[1])
+        self.fc5=layers.Dense(self.input_flattened_size)
 
     def encode(self,input):
         h=tf.nn.relu(self.fc1(input))
@@ -75,7 +78,8 @@ class VAE(models.Model):
     def  reparameterize(self,mean,log_variance):
         #the reparameterization trick.
         std=tf.exp(log_variance *.5)
-        random_normal_dist=tf.random.normal(std.shape)
+        shape= std.shape if std.shape[0] is not None and std.shape[0]>0 else (1,std.shape[-1])
+        random_normal_dist=tf.random.normal(shape)
         return mean + random_normal_dist * std
 
     def decode_logits(self,z):
@@ -88,11 +92,11 @@ class VAE(models.Model):
     def call(self,inputs:Tensor,training=None, mask=None) ->(Tensor,Tensor,Tensor):
         mean,log_variance=self.encode(inputs)
         z=self.reparameterize(mean,log_variance)
-        reconstructed_logits=self.decode_logits(z)
-        return reconstructed_logits,mean,log_variance
+        decoder_logits=self.decode_logits(z)
+        return decoder_logits,mean,log_variance
 
-    def generate_sample_2D_images(self, batch_size:int) -> ndarray:
-        z=tf.random.normal((batch_size,self.zdim))
+    def generate_sample_2D_images(self, how_many:int) -> ndarray:
+        z=tf.random.normal((how_many, self.latent_space_dims))
         out=self.decode(z)
         out=tf.reshape(out, [-1,self.input_dims[0], self.input_dims[1]])
         out= (out.numpy() * 255).astype(np.uint8)
@@ -111,7 +115,7 @@ xt,xv= load_minst_xtrain_and_xval_unlabelled_as_float32()
 xt:ndarray;xv:ndarray
 model=VAE((mnist_img_width,mnist_img_width), hidden_layers_dim=model_hidden_dim, latent_space_dim=model_latent_dim)
 mnist_dims = mnist_img_width * mnist_img_height
-model.build(input_shape=(4, mnist_dims))
+model.build(input_shape=(None,mnist_dims))
 model.summary()
 optimizer= optimizers.Adam(train_learning_rate)
 num_batches=xt.shape[0]//train_batch_size
@@ -143,13 +147,13 @@ for epoch in range(1,1+train_num_epochs):
     print(f'\nEpoch {epoch}/{train_num_epochs} |'
           f' Reconstruction loss {loss:.4f} KL Divergence {kldivergence:.4f}')
 
-    #models.save_model(model, save_model_directory)
+    models.save_model(model, save_model_directory)
 
     sample_generated_images=model.generate_sample_2D_images(train_batch_size)
     create_grid_image_from_images(
             sample_generated_images,
             demo_output_width, demo_output_height, mnist_img_width, mnist_img_height,
-            save_to_filepath=f'{save_imgs_directory}/vae_generated_from_Normal_epoch_{epoch}.png',
+            save_to_filepath=f'{save_imgs_directory}/vae_generated_by_model_epoch_{epoch}.png',
             show_plot=True)
 
     half_batch=input[:train_batch_size // 2]
