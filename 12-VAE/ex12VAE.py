@@ -149,7 +149,7 @@ for epoch in range(1,1+train_num_epochs):
     create_grid_image_from_images(
             sample_generated_images,
             demo_output_width, demo_output_height, mnist_img_width, mnist_img_height,
-            save_to_filepath=f'{save_imgs_directory}/vae_sampled_epoch_{epoch}.png',
+            save_to_filepath=f'{save_imgs_directory}/vae_generated_from_Normal_epoch_{epoch}.png',
             show_plot=True)
 
     half_batch=input[:train_batch_size // 2]
@@ -160,5 +160,5 @@ for epoch in range(1,1+train_num_epochs):
     create_grid_image_from_images(
             demo_imgs,
             demo_output_width,demo_output_height, mnist_img_width,mnist_img_height,
-            save_to_filepath=f'{save_imgs_directory}/vae_reconstructed_epoch_{epoch}.png',
+            save_to_filepath=f'{save_imgs_directory}/vae_reconstructed_from_input_epoch_{epoch}.png',
             show_plot=True)
