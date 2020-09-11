@@ -31,7 +31,6 @@ demo_output_height=int( np.sqrt(train_batch_size) * mnist_img_height)
 
 def load_minst_xtrain_and_xval_unlabelled_as_float32(verbose=True)-> (ndarray,ndarray):
     (xt,yt),(xv,yv) = datasets.fashion_mnist.load_data()
-    xt:ndarray;xv:ndarray
     if verbose: print(f'xtrain.shape={xt.shape}, xval.shape={xv.shape}')
     return xt.astype(np.float32)/255. , xv.astype(np.float32)/255.
 
@@ -112,7 +111,6 @@ class VAE(models.Model):
 
 
 xt,xv= load_minst_xtrain_and_xval_unlabelled_as_float32()
-xt:ndarray;xv:ndarray
 model=VAE((mnist_img_width,mnist_img_width), hidden_layers_dim=model_hidden_dim, latent_space_dim=model_latent_dim)
 mnist_dims = mnist_img_width * mnist_img_height
 model.build(input_shape=(None,mnist_dims))

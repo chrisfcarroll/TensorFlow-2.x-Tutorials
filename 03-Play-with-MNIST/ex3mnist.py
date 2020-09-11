@@ -7,7 +7,7 @@ from tensorflow.data import Dataset
 
 xs:ndarray
 ys:ndarray
-(xs,ys),__= datasets.mnist.load_data() #throws away _=(xtrain,ytrain)
+(xs,ys),__= datasets.mnist.load_data() #throws away _=(xval,yval)
 print('dataset:', xs.shape, ys.shape, xs.min(), xs.max())
 
 xs= xs.astype(np.float32) /255
@@ -35,7 +35,3 @@ for step, (x,y) in enumerate(db):
     grads=tape.gradient(loss,net.trainable_variables)
     if step % 1000==0:
         print(step, 'loss:', float(loss), 'accuracy:', accuracy_meter.result().numpy()*100,'%')
-
-
-
-
