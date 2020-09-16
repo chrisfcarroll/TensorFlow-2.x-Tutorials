@@ -15,8 +15,8 @@ mnist_img_width=28
 mnist_img_height=28
 save_model_directory= 'model'
 save_imgs_directory= 'images'
-if not os.path.exists(save_model_directory): os.makedirs(save_model_directory)
-if not os.path.exists(save_imgs_directory): os.makedirs(save_imgs_directory)
+os.makedirs(save_model_directory,exist_ok=True)
+os.makedirs(save_imgs_directory, exist_ok=True)
 
 train_num_epochs=55
 train_batch_size=100

@@ -17,6 +17,7 @@ num_epochs = 55
 batch_size = 100
 learning_rate = 1e-3
 progress_interval=50
+os.makedirs('images',exist_ok=True)
 
 def load_mnist_as_float32uint8(verbose=True) -> ((ndarray, ndarray), (ndarray, ndarray)):
     (xt, yt), (xv, yv) = keras.datasets.mnist.load_data()
