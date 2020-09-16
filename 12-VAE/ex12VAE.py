@@ -31,7 +31,7 @@ demo_output_height=int( np.sqrt(train_batch_size) * mnist_img_height)
 
 def load_minst_xtrain_and_xval_unlabelled_as_float32(verbose=True)-> (ndarray,ndarray):
     (xt,yt),(xv,yv) = datasets.fashion_mnist.load_data()
-    if verbose: print(f'xtrain.shape={xt.shape}, xval.shape={xv.shape}')
+    if verbose: print('xtrain.shape={}, xval.shape={}'.format(xt.shape,xv.shape))
     return xt.astype(np.float32)/255. , xv.astype(np.float32)/255.
 
 
@@ -119,7 +119,7 @@ optimizer= optimizers.Adam(train_learning_rate)
 num_batches=xt.shape[0]//train_batch_size
 trainds=tf.data.Dataset.from_tensor_slices(xt)\
             .shuffle(train_batch_size*500).batch(train_batch_size)
-print(f'Starting on {trainds.cardinality()} batches of {train_batch_size} each ...')
+print('Starting on {} batches of {} each ...'.format(trainds.cardinality(),train_batch_size))
 
 for epoch in range(1,1+train_num_epochs):
     for step,x in enumerate(trainds):
@@ -142,8 +142,9 @@ for epoch in range(1,1+train_num_epochs):
         optimizer.apply_gradients(zip(gradients,model.trainable_weights))
         if step % 50 == 0: print('.',end='')
 
-    print(f'\nEpoch {epoch}/{train_num_epochs} |'
-          f' Reconstruction loss {loss:.4f} KL Divergence {kldivergence:.4f}')
+    print('\nEpoch {}/{} |'
+          ' Reconstruction loss {:.4f} KL Divergence {:.4f}'
+          ''.format(epoch,train_num_epochs,loss,kldivergence))
 
     models.save_model(model, save_model_directory)
 
@@ -151,7 +152,8 @@ for epoch in range(1,1+train_num_epochs):
     create_grid_image_from_images(
             sample_generated_images,
             demo_output_width, demo_output_height, mnist_img_width, mnist_img_height,
-            save_to_filepath=f'{save_imgs_directory}/vae_generated_by_model_epoch_{epoch}.png',
+            save_to_filepath='{}/vae_generated_by_model_epoch_{}.png'
+                             ''.format(save_imgs_directory,epoch),
             show_plot=True)
 
     half_batch=input[:train_batch_size // 2]
@@ -162,5 +164,6 @@ for epoch in range(1,1+train_num_epochs):
     create_grid_image_from_images(
             demo_imgs,
             demo_output_width,demo_output_height, mnist_img_width,mnist_img_height,
-            save_to_filepath=f'{save_imgs_directory}/vae_reconstructed_from_input_epoch_{epoch}.png',
+            save_to_filepath='{}/vae_reconstructed_from_input_epoch_{}.png'
+                             ''.format(save_imgs_directory,epoch),
             show_plot=True)

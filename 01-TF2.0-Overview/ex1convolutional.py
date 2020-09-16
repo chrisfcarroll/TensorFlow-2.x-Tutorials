@@ -10,7 +10,6 @@ from asciiartnumpy import *
 os.environ['TF_CPP_MIN_LOG_LEVEL'] ='2'
 
 def get_mnist_dataset(batch_size=100, shuffle_train=True):
-    x_train : np.ndarray; x_test : np.ndarray; y_train : np.ndarray; y_test : np.ndarray;
     (x_train, y_train), (x_test,y_test)= datasets.mnist.load_data()
     x_train, x_test = x_train / np.float32(255), x_test / np.float32(255)
     # why?? y_train, y_test = y_train.astype(np.int64), y_test.astype(np.int64)

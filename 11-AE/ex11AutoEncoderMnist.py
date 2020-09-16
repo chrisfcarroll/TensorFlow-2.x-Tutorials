@@ -19,10 +19,10 @@ learning_rate = 1e-3
 progress_interval=50
 
 def load_mnist_as_float32uint8(verbose=True) -> ((ndarray, ndarray), (ndarray, ndarray)):
-    xt:ndarray; yt:ndarray; xv:ndarray; yv:ndarray
     (xt, yt), (xv, yv) = keras.datasets.mnist.load_data()
     xt, xv = xt.astype(np.float32) / 255., xv.astype(np.float32) / 255.
-    if verbose: print(f'mnist train={(xt.shape, yt.shape)} val={(xv.shape, yv.shape)}')
+    if verbose: print('mnist train={} val={}'.format(
+            (xt.shape, yt.shape),(xv.shape, yv.shape)))
     return (xt, yt), (xv, yv)
 
 
@@ -41,7 +41,7 @@ def collect_epoch_demo_images(
     batch_size= (input_batch.shape[0] // 2) * 2
     display_x= int(np.math.sqrt(batch_size))
     display_y= int(batch_size/display_x)
-    width:int= shape[0] ; height:int = shape[1]
+    width= shape[0] ; height = shape[1]
     assert input_batch.shape[1] == width * height
     half_batch= input_batch[:batch_size//2]
     logits=model(half_batch)
@@ -59,7 +59,7 @@ def collect_epoch_demo_images(
             demo_batch_images.paste(img, (x, y))
             i+=1
     if save_in_dir is not None:
-        demo_batch_images.save(f'{save_in_dir}/demo_images_epoch{epochN}.png')
+        demo_batch_images.save('{}/demo_images_epoch{}.png'.format(save_in_dir,epochN))
     if display_images is True:
         plt.imshow(np.asarray(demo_batch_images))
         plt.show()
@@ -109,6 +109,7 @@ for epoch in range(1, num_epochs+1):
         gradients,__=tf.clip_by_global_norm(gradients,15)
         optimizer.apply_gradients(zip(gradients,model.trainable_weights))
         if (step+1) % progress_interval == 0:
-            print(f'Epoch {epoch:2}/{num_epochs} Step {step+1:4}/{num_batches} : Loss {loss:4}')
+            print('Epoch {:2}/{} Step {:4}/{} : Loss {:4}'
+                  ''.format(epoch,num_epochs,step+1,num_batches,loss))
 
     collect_epoch_demo_images(model,x,(28,28),epoch)
