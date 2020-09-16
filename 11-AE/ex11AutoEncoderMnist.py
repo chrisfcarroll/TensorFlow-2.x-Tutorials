@@ -19,7 +19,7 @@ learning_rate = 1e-3
 progress_interval=50
 os.makedirs('images',exist_ok=True)
 
-def load_mnist_as_float32uint8(verbose=True) -> ((ndarray, ndarray), (ndarray, ndarray)):
+def load_mnist_as_float32uint8(verbose=True): 
     (xt, yt), (xv, yv) = keras.datasets.mnist.load_data()
     xt, xv = xt.astype(np.float32) / 255., xv.astype(np.float32) / 255.
     if verbose: print('mnist train={} val={}'.format(
