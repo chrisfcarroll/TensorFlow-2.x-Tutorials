@@ -2,7 +2,8 @@ import  os
 import  numpy as np
 import  tensorflow as tf
 from    tensorflow import keras
-from    scipy.misc import toimage
+#from    scipy.misc import toimage
+from PIL.Image import fromarray as toimage
 
 from    gan import Generator, Discriminator
 
