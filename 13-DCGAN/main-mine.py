@@ -5,7 +5,8 @@ from    tensorflow import keras
 #from    scipy.misc import toimage
 from PIL.Image import fromarray as toimage
 
-from    gan import Generator, Discriminator
+#from    gan import Generator, Discriminator
+from ex13DcGan import Generator, Discriminator
 
 
 
@@ -115,12 +116,10 @@ def main():
     d_optimizer = keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.5)
     g_optimizer = keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.5)
 
-
     print('starting...')
     for epoch in range(epochs):
 
-        print('.',end='')
-
+        if epoch % 2 ==0: print('.',end='')
         # no need labels
         batch_x = next(db_iter)
 
@@ -146,7 +145,7 @@ def main():
 
 
         if epoch % 100 == 0:
-            print()
+
             print(epoch, 'd loss:', float(d_loss), 'g loss:', float(g_loss))
 
             # validation results at every epoch
