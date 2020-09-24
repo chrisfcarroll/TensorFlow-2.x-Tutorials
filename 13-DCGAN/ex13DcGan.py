@@ -4,6 +4,65 @@ import os
 import numpy as np
 from PIL.Image import fromarray as toimage
 
+"""
+https://arxiv.org/pdf/1511.06434.pdf
+2016
+UNSUPERVISED REPRESENTATION LEARNING WITH DEEP CONVOLUTIONAL GENERATIVE ADVERSARIAL NETWORKS
+Alec Radford & Luke Metz Soumith Chintala
+
+Architecture guidelines for stable Deep Convolutional GANs
+
+• Replace any pooling layers with strided convolutions (discriminator) and 
+  fractional-strided convolutions (generator). This allows the network to learn its own 
+  spatial downsampling. 
+• Use batchnorm in both the generator and the discriminator but not in the generator last layer or
+  the discriminator first layer.
+• Remove fully connected hidden layers for deeper architectures. (Although we found global
+ average pooling increased model stability but hurt convergence speed)
+• Use ReLU activation in generator for all layers except for the output, which uses Tanh.
+• Use LeakyReLU activation in the discriminator for all layers.
+• The first layer of the GAN is reshaped into a 4-dimensional tensor and used as the start of the convolution stack. 
+• The last convolution layer of the discriminator is flattened and then fed into a single sigmoid output. 
+
+Re Batch Normalization:
+This helps deal with training problems that arise due to poor initialization and helps gradient 
+flow in deeper models. (This proved critical to get deep generators to begin learning, preventing 
+the generator from collapsing all samples to a single point which is a common failure mode observed 
+in GANs. 
+Directly applying batchnorm to all layers however, resulted in sample oscillation and model 
+instability. This was avoided by not applying batchnorm to the generator output layer and the
+discriminator input layer.
+
+Other comments:
+Adam learning rate 0.0002, momentum β1 0.5
+
+See also
+https://machinelearningmastery.com/how-to-train-stable-generative-adversarial-networks/
+which includes a summary of 
+NIPS 2016 Tutorial: Generative Adversarial Networks Ian Goodfellow https://arxiv.org/abs/1701.00160
+A summary of some of the more actionable tips:
+
+- Normalize inputs to the range [-1, 1] and use tanh in the generator output.
+- Flip the labels and loss function when training the generator.
+- Sample Gaussian random numbers as input to the generator.
+- Use mini batches of all real or all fake for calculating batch norm statistics.
+- Use Leaky ReLU in the generator and discriminator.
+- Use Average pooling and stride for downsampling; use ConvTranspose2D and stride for upsampling.
+- Use label smoothing in the discriminator, with small random noise.
+- Add random noise to the labels in the discriminator.
+- Use DCGAN architecture, unless you have a good reason not to.
+- A loss of 0.0 in the discriminator is a failure mode.
+- If loss of the generator steadily decreases, it is likely fooling the discriminator with garbage images.
+- Use labels if you have them.
+- Add noise to inputs to the discriminator and decay the noise over time.
+- Use dropout of 50 percent during train and generation.
+
+it’s common to see checkerboard artifacts caused by unequal coverage of the pixel space in the 
+generator. To fix this, we use a kernel size that’s divisible by the stride size whenever we use 
+a strided Conv2DTranpose or Conv2D in both the generator and the discriminator.
+"""
+
+
 def main():
     tf.random.set_seed(4729)
     np.random.seed(4729)
