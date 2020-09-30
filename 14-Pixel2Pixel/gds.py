@@ -1,6 +1,7 @@
 import  tensorflow as tf
 import  numpy as np
 from    tensorflow import keras
+import os, warnings
 
 class Downsample(keras.Sequential):
 
@@ -132,6 +133,11 @@ class Discriminator(keras.Sequential):
         return x
 
     def build(self, input_shape):
+        if tf.__version__ <= "2.3":
+            warnings.warn(UserWarning('This call relies on TensorFlow 2.3 but you have {}.'
+                                      'You can work round this by using call( <tensor> ) '
+                                      'instead of build( <tensorshape> )'\
+                          .format(tf.__version__)))
         inp,targets=input_shape
         concated_shape=[inp[0], inp[1], inp[2], inp[3]+targets[3] ]
         # self.model.build(concated_shape)
