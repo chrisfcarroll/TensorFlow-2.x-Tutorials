@@ -4,7 +4,6 @@ import  numpy as np
 from    tensorflow import keras
 import  time
 from    matplotlib import pyplot as plt
-
 from    gds import Discriminator, Generator
 
 tf.random.set_seed(22)
@@ -184,7 +183,7 @@ def generate_images(model, test_input, tar, epoch):
 
 
 def main():
-
+    os.makedirs('images',exist_ok=True)
     epochs = 1000
 
     for epoch in range(epochs):
