@@ -5,7 +5,7 @@ from    tensorflow import keras
 import  time
 from    matplotlib import pyplot as plt
 
-from    gd import Discriminator, Generator
+from    gds import Discriminator, Generator
 
 tf.random.set_seed(22)
 np.random.seed(22)

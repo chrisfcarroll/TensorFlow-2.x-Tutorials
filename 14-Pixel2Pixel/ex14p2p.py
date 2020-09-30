@@ -7,6 +7,7 @@ from tensorflow.python.data import Dataset
 from matplotlib import pyplot as plt
 import os
 import time
+from gds import *
 
 assert tf.__version__ >='2'; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.random.set_seed(3426) ; np.random.seed(3426)
@@ -79,36 +80,49 @@ def generator_loss(discr_generated,generated,target):
 def get_facade_dataset():
     path_to_facadestargz = keras.utils.get_file(
             'facades.tar.gz',
-            cache_subdir=os.path.expanduser("."),
             origin='https://people.eecs.berkeley.edu/~tinghuiz/projects/pix2pix/datasets/facades.tar.gz',
             extract=True)
     print('Downloading to {}'.format(os.path.dirname(path_to_facadestargz)))
     path_to_train_set = os.path.join(os.path.dirname(path_to_facadestargz), 'facades/train/*.jpg')
-    train_ds = tf.data.Dataset.list_files(path_to_train_set)
-    train_ds = train_ds.map(lambda filename: load_image(filename, True)).shuffle(400).batch(1)
     path_to_val_set = os.path.join(os.path.dirname(path_to_facadestargz), 'facades/test/*.jpg')
+    ph_str=tf.keras.backend.placeholder(shape=[],dtype=tf.string)
+    train_ds = tf.data.Dataset.list_files(path_to_train_set)
+    train_ds = train_ds.map(lambda x: tf.py_function(func=load_train_image, inp=[ph_str], Tout=tf.float32)).shuffle(400).batch(1)
     val_ds = tf.data.Dataset.list_files(path_to_val_set)
-    val_ds = val_ds.map(lambda filename: load_image(filename, True)).shuffle(400).batch(1)
+    val_ds = val_ds.map(lambda x: tf.py_function(func=load_val_image, inp=[ph_str], Tout=tf.float32)).shuffle(400).batch(1)
     return train_ds, val_ds
 
 
-def load_image(image_filename, is_train):
+def load_train_image(image_filename):
     """
     load and preprocess images
     """
-    images=tf.io.read_file(image_filename)
-    images=tf.image.decode_jpeg(images)
-    images=tf.cast(images,tf.float32)
-    actual_width=images.shape[1]//2
-    drawn=images[:, actual_width:, :] # right half
-    real=images[:, :actual_width, :] # left half
-    if is_train:
-        drawn,real= random_jitter_image_pair(drawn, real)
-    else:
-        drawn=tf.image.resize(drawn, size=[facades_img_height,facades_img_width])
-        real=tf.image.resize(real, size=[facades_img_height,facades_img_width])
+    drawn, real = half_images_from_filename(image_filename)
+    drawn, real= random_jitter_image_pair(drawn, real)
     drawn, real = drawn/127.5- 1, real/127.5 - 1
     return tf.concat([drawn,real],axis=2)
+
+
+def load_val_image(image_filename):
+    """
+    load and preprocess images
+    """
+    drawn, real = half_images_from_filename(image_filename)
+    drawn=tf.image.resize(drawn, size=[facades_img_height,facades_img_width])
+    real=tf.image.resize(real, size=[facades_img_height,facades_img_width])
+    drawn, real = drawn/127.5- 1, real/127.5 - 1
+    return tf.concat([drawn,real],axis=2)
+
+
+def half_images_from_filename(image_filename):
+    images = tf.io.read_file(image_filename[0])
+    images = tf.image.decode_jpeg(images)
+    images = tf.cast(images, tf.float32)
+    print('filename {} shape {}'.format(image_filename[0], images.shape))
+    actual_width = images.shape[1] // 2
+    drawn = images[:, actual_width:, :]  # right half
+    real = images[:, :actual_width, :]  # left half
+    return drawn, real
 
 
 def random_jitter_image_pair(drawn,real):
@@ -121,119 +135,6 @@ def random_jitter_image_pair(drawn,real):
         drawn = tf.image.flip_left_right(drawn)
         real = tf.image.flip_left_right(real)
     return real,drawn
-
-
-class Downsample(keras.Sequential):
-
-    def __init__(self, filters, kernel_size, apply_batchnorm=True):
-        init= tf.random_normal_initializer(0., 0.02)
-        layers=[
-                keras.layers.Conv2D(filters,
-                                    kernel_size,
-                                    strides=2,
-                                    padding='same',
-                                    kernel_initializer=init,
-                                    use_bias=False)]
-        if(apply_batchnorm): layers.append(keras.layers.BatchNormalization())
-        layers.append(keras.layers.LeakyReLU())
-        super(Downsample, self).__init__(layers)
-
-    def call(self, inputs, training=None, mask=None):
-        super(Downsample, self).call(inputs,training,mask)
-
-    def build(self, input_shape=None):
-            super(Downsample, self).build(input_shape=input_shape)
-
-
-class Upsample(keras.Sequential):
-
-    def __init__(self, filters, kernel_size, apply_dropout=False, dropout_rate=0.5):
-        super(Upsample, self).__init__()
-        init=tf.random_normal_initializer(0., 0.02)
-        self.add(keras.layers.Conv2DTranspose(filters,
-                                              kernel_size,
-                                              strides=2,
-                                              padding='same',
-                                              kernel_initializer=init,
-                                              use_bias=False,
-                                              name='up_conv'))
-        self.add(keras.layers.BatchNormalization())
-        if apply_dropout : self.add( keras.layers.Dropout(dropout_rate))
-        self.add(keras.layers.ReLU())
-
-    def call(self, x1, x2, training=None):
-        fromInputs=super(Upsample, self).call(x1, training, mask)
-        return tf.concat([fromInputs, x2], axis=-1)
-
-
-class Generator(keras.Sequential):
-
-    def __init__(self):
-        init=tf.random_normal_initializer(0., 0.02)
-        layers=[
-            Downsample( 64,4,apply_batchnorm=False),
-            Downsample(128,4),
-            Downsample(256,4),
-            Downsample(512,4),
-            Downsample(512,4),
-            Downsample(512,4),
-            Downsample(512,4),
-            Downsample(512,4),
-            Upsample(512, 4, apply_dropout=True),
-            Upsample(512, 4, apply_dropout=True),
-            Upsample(512, 4, apply_dropout=True),
-            Upsample(512, 4),
-            Upsample(256, 4),
-            Upsample(128, 4),
-            Upsample( 64, 4),
-            keras.layers.Conv2DTranspose(3,
-                             4,
-                             strides=2,
-                             padding='same',
-                             kernel_initializer=init,
-                             activation=keras.activations.tanh)
-        ]
-        super(Generator, self).__init__(layers)
-
-
-class DiscDownsample(keras.Sequential):
-
-    def __init__(self, filters, kernel_size, apply_batchnorm=True):
-        super(DiscDownsample, self).__init__()
-        init=tf.random_normal_initializer(0., 0.02)
-        self.add(
-            keras.layers.Conv2D(filters,
-                                size,
-                                strides=2,
-                                padding='same',
-                                kernel_initializer=init,
-                                use_bias=False))
-        if apply_batchnorm: self.add(keras.layers.BatchNormalization())
-        self.add(keras.layers.LeakyReLU())
-
-
-class Discriminator(keras.Sequential):
-
-    def __init__(self):
-        init= tf.random_normal_initializer(0., 0.25)
-        layers=[
-            DiscDownsample(64,4,False),
-            DiscDownsample(128,4),
-            DiscDownsample(256,4),
-            # need padding to go from (batch, 32,32,256) to (batch, 31,31,512)
-            keras.layers.ZeroPadding2D(),
-            keras.layers.Conv2D(512, 4, strides=1, kernel_initializer=init, use_bias=False),
-            keras.layers.BatchNormalization(),
-            keras.layers.LeakyReLU(),
-            keras.layers.ZeroPadding2D(),
-            keras.layers.Conv2D(1, 4, strides=1, kernel_initializer=init),
-        ]
-        super(Discriminator, self).__init__(layers)
-
-    def call(self, inputs, training=None, mask=None):
-        input,target=inputs
-        x= tf.concat([input,target],axis=-1)# (bs, 256, 256, channels*2)
-        super(Discriminator, self).call(x, training=training, mask=mask)
 
 
 if __name__ == '__main__':
