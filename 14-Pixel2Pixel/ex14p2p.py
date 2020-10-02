@@ -55,6 +55,7 @@ def train(
     print('Training for {} epochs ...'.format(epochs))
     for epoch in range(1,epochs+1):
         start=time.time()
+        print('epoch {} '.format(epoch), end="")
         for step,inputs in enumerate(train_ds):
             print(".",end="")
             input,target=tf.split(inputs,num_or_size_splits=[3,3],axis=3)
@@ -71,20 +72,15 @@ def train(
             discr_gradients=discr_tape.gradient(discr_loss,discriminator.trainable_weights)
             discriminator.optimizer.apply_gradients(
                     zip(discr_gradients,discriminator.trainable_weights))
-        if epoch%100==0:
-            print()
-            print('epoch {}, batch {}, gen/discr lossess {}'.\
-                        format(epoch, step, (gen_loss,discr_loss)))
-        if epoch in [1,2,4,10,30,50,80]:
-            for inputs in val_ds:
-                input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
-                generate_and_show_images(generator,input,target,epoch,step)
         print()
         print('epoch {} took {}'.format(epoch, time.time()-start))
-
-    for i, inputs in enumerate(val_ds):
-        input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
-        generate_and_show_images(generator, input, target, epochs, i)
+        if epoch%100==0:
+            print('epoch {}, batch {}, gen/discr lossess {}'.\
+                        format(epoch, step, (gen_loss,discr_loss)))
+        if epoch in [1,2,4,10,30,50,80,epochs]:
+            for i,inputs in enumerate(val_ds):
+                input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
+                generate_and_show_images(generator,input,target,epoch,i)
 
 
 def imshow_n_images(*images, rows=1):
