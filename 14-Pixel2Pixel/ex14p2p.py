@@ -9,7 +9,7 @@ from tensorflow.python.data import Dataset
 from matplotlib import pyplot as plt
 import os
 import time
-from gds import *
+from gds import Discriminator, Generator
 
 assert tf.__version__ >='2'; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.random.set_seed(3426) ; np.random.seed(3426)
@@ -21,25 +21,25 @@ Facades_Img_Height=256
 
 
 def main():
-    generator : keras.Model = Generator()
-    generator.build(
-            input_shape=(P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3))
+    os.makedirs("images",exist_ok=True)
+    generator: Generator = Generator()
+    generator.build(input_shape=(
+                        P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3))
     generator.optimizer=keras.optimizers.Adam(
             learning_rate=P2P_Adam_Learning_Rate,
             beta_1=P2P_Adam_Beta_1)
     generator.summary()
 
-    discriminator: keras.Model = Discriminator()
-    discriminator.build(
-            input_shape=[
-                (P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3),
-                (P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3)])
+    discriminator : Discriminator = Discriminator()
+    discriminator.build(input_shape=[
+                        (P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3),
+                        (P2P_Batch_Size, Facades_Img_Width, Facades_Img_Height, 3)])
     discriminator.optimizer=keras.optimizers.Adam(
             learning_rate=P2P_Adam_Learning_Rate,
             beta_1=P2P_Adam_Beta_1)
     discriminator.summary()
 
-    train_ds, val_ds = get_facade_dataset()
+    train_ds, val_ds = get_facade_datasets()
 
     train(generator, discriminator, train_ds, val_ds)
 
@@ -49,17 +49,16 @@ def train(
         discriminator:Discriminator,
         train_ds:Dataset,
         val_ds:Dataset,
-        epochs=100):
+        epochs=1000):
+    plt.figure(figsize=(15,15))
+    plt.show(block=False)
     print('Training for {} epochs ...'.format(epochs))
     for epoch in range(1,epochs+1):
         start=time.time()
         for step,inputs in enumerate(train_ds):
+            print(".",end="")
             input,target=tf.split(inputs,num_or_size_splits=[3,3],axis=3)
-            #
             # imshow_n_images( input[0]*0.5 + 0.5,target[0]*0.5 + 0.5 )
-            print('input.shape={}, target.shape={}'.format(input.shape, target.shape))
-            plt.savefig('images/examplepair{:04d}.png'.format(epoch))
-            #
             with tf.GradientTape() as gen_tape, tf.GradientTape() as discr_tape:
                 gen_output=generator(input,training=True)
                 discr_real=discriminator([input,target], training=True)
@@ -72,44 +71,47 @@ def train(
             discr_gradients=discr_tape.gradient(discr_loss,discriminator.trainable_weights)
             discriminator.optimizer.apply_gradients(
                     zip(discr_gradients,discriminator.trainable_weights))
-            if epoch%100==0:
-                print('epoch {}, batch {}, gen/discr lossess {}'.\
-                            format(epoch, step, (gen_loss,discr_loss)))
-            if epoch in [1,2,4,10,30,50,80]:
-                for inputs in val_ds:
-                    input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
-                    generate_and_show_images(generator,input,target,epoch)
+        if epoch%100==0:
+            print()
+            print('epoch {}, batch {}, gen/discr lossess {}'.\
+                        format(epoch, step, (gen_loss,discr_loss)))
+        if epoch in [1,2,4,10,30,50,80]:
+            for inputs in val_ds:
+                input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
+                generate_and_show_images(generator,input,target,epoch,step)
+        print()
         print('epoch {} took {}'.format(epoch, time.time()-start))
 
-    for inputs in val_ds:
+    for i, inputs in enumerate(val_ds):
         input,target=tf.split(inputs,num_or_size_splits=[3,3], axis=3)
-        generate_and_show_images(generator,input,target,epochs+1)
+        generate_and_show_images(generator, input, target, epochs, i)
 
 
 def imshow_n_images(*images, rows=1):
     n= len(images)
     cols = math.ceil( n // rows)
-    plt.figure(figsize=(rows, cols))
+    plt.clf()
     for i,img in enumerate(images,start=1):
         plt.subplot(rows,cols,i)
         plt.imshow(img)
-    plt.show()
+    plt.show(block=False)
 
 
-def generate_and_show_images(model, test_input, target, epoch):
+def generate_and_show_images(model, test_input, target, epoch, image_num):
     prediction=model(test_input,training=True) #training=True get us per-batch stats
-    plt.figure(figsize=(15,15))
     display_list=[test_input[0], target[0], prediction[0]]
     title=['Input image', 'Ground Truth', 'Predicted Image']
+    plt.clf()
     for i in range(3):
         plt.subplot(1,3, i+1)
         plt.title(title[i])
         plt.imshow(display_list[i] * 0.5 + 0.5) #rescale (-1,1)->(0,1)
         plt.axis('off')
-    plt.savefig('images/epoch{:04d}.png'.format(epoch))
+    plt.savefig('images/epoch{:04d}-{:02d}.png'.format(epoch,image_num))
+    plt.show(block=False)
 
 
-def get_facade_dataset():
+def get_facade_datasets():
     path_to_facadestargz = keras.utils.get_file(
             'facades.tar.gz',
             origin=

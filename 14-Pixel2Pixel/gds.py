@@ -4,7 +4,7 @@ from    tensorflow import keras
 import os, warnings
 
 
-class Generator(keras.Sequential):
+class Generator(keras.Model):
 
     L1_Loss_Lambda=100
 
@@ -19,26 +19,47 @@ class Generator(keras.Sequential):
     def __init__(self):
         super(Generator, self).__init__()
         initializer = tf.random_normal_initializer(0., 0.02)
-        self.add( Downsample(64, 4, apply_batchnorm=False) ),
-        self.add( Downsample(128, 4) ),
-        self.add( Downsample(256, 4) ),
-        self.add( Downsample(512, 4) ),
-        self.add( Downsample(512, 4) ),
-        self.add( Downsample(512, 4) ),
-        self.add( Downsample(512, 4) ),
-        self.add( Downsample(512, 4) ),
-        self.add( Upsample(512, 4, apply_dropout=True) ),
-        self.add( Upsample(512, 4, apply_dropout=True) ),
-        self.add( Upsample(512, 4, apply_dropout=True) ),
-        self.add( Upsample(512, 4) ),
-        self.add( Upsample(256, 4) ),
-        self.add( Upsample(128, 4) ),
-        self.add( Upsample(64, 4) ),
-        self.add( keras.layers.Conv2DTranspose(3, (4, 4),
+        self.down1 = Downsample(64, 4, apply_batchnorm=False)
+        self.down2 = Downsample(128, 4)
+        self.down3 = Downsample(256, 4)
+        self.down4 = Downsample(512, 4)
+        self.down5 = Downsample(512, 4)
+        self.down6 = Downsample(512, 4)
+        self.down7 = Downsample(512, 4)
+        self.down8 = Downsample(512, 4)
+        self.up1 = Upsample(512, 4, apply_dropout=True)
+        self.up2 = Upsample(512, 4, apply_dropout=True)
+        self.up3 = Upsample(512, 4, apply_dropout=True)
+        self.up4 = Upsample(512, 4)
+        self.up5 = Upsample(256, 4)
+        self.up6 = Upsample(128, 4)
+        self.up7 = Upsample(64, 4)
+        self.last= keras.layers.Conv2DTranspose(3, (4, 4),
                                                     strides=2,
                                                     padding='same',
-                                                    kernel_initializer=initializer))
-        self.add(keras.layers.Activation(tf.nn.tanh))
+                                                    kernel_initializer=initializer)
+        self.lastactivation=keras.layers.Activation(tf.nn.tanh)
+
+    def call(self, inputs, training=None, mask=None):
+        x1 = self.down1(inputs, training=training)  # (bs, 128, 128, 64)
+        x2 = self.down2(x1, training=training)  # (bs, 64, 64, 128)
+        x3 = self.down3(x2, training=training)  # (bs, 32, 32, 256)
+        x4 = self.down4(x3, training=training)  # (bs, 16, 16, 512)
+        x5 = self.down5(x4, training=training)  # (bs, 8, 8, 512)
+        x6 = self.down6(x5, training=training)  # (bs, 4, 4, 512)
+        x7 = self.down7(x6, training=training)  # (bs, 2, 2, 512)
+        x8 = self.down8(x7, training=training)  # (bs, 1, 1, 512)
+        x9 = self.up1(x8,x7,training=training)
+        x10=self.up2(x9,x6,training=training)
+        x11=self.up3(x10,x5,training=training)
+        x12=self.up4(x11,x4,training=training)
+        x13=self.up5(x12,x3,training=training)
+        x14=self.up6(x13,x2,training=training)
+        x15=self.up7(x14,x1,training=training)
+        x16=self.last(x15)
+        x17=self.lastactivation(x16)
+        return x17
+
 
 class Discriminator(keras.Sequential):
 
@@ -121,13 +142,14 @@ class Upsample(keras.Sequential):
         super(Upsample, self).__init__()
         initializer = tf.random_normal_initializer(0., 0.02)
         self.add(keras.layers.Conv2DTranspose(filters,
-                           (size, size),
-                           strides=2,
-                           padding='same',
-                           kernel_initializer=initializer,
-                           use_bias=False))
+                                   (size, size),
+                                   strides=2,
+                                   padding='same',
+                                   kernel_initializer=initializer,
+                                   use_bias=False))
         self.add(keras.layers.BatchNormalization())
         if apply_dropout: self.add(keras.layers.Dropout(0.5))
+        self.add(keras.layers.ReLU())
 
     def call(self, inputs, x2=None, **kwargs):
         x= super(Upsample, self).call(inputs, **kwargs)
